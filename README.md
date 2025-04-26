@@ -1,6 +1,6 @@
 # University Manager TUI (Rust)
 
-![Rust](https://github.com/SpeedSX/university-manager-tui-rust/workflows/Rust/badge.svg?branch=main)
+![Rust](https://github.com/SpeedSX/university-manager-tui-rust/workflows/Rust/badge.svg?branch=main&v=2)
 
 A Terminal-based User Interface (TUI) application for managing university data including students, teachers, and faculties. Built with Rust and the [ratatui](https://github.com/ratatui-org/ratatui) library.
 
