@@ -395,14 +395,13 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
         )
         .split(inner_area);
     
-    // Render fields
+    // Render all fields first
     for i in 0..5 {
         let (field, value) = &modal.inputs[i];
         let is_active = modal.active_field == i;
         
-        // Special handling for Major field - show dropdown indicator
+        // For Major field, just render the field (dropdown will come later)
         if i == 3 { // Major field is at index 3
-            // Use the function from widgets module to render the dropdown field
             widgets::render_dropdown_field(
                 f,
                 chunks[i],
@@ -411,11 +410,6 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
                 is_active,
                 modal.major_dropdown.is_open
             );
-            
-            // If this field is active and dropdown is open, show the dropdown
-            if is_active && modal.major_dropdown.is_open {
-                widgets::render_dropdown(f, &mut modal.major_dropdown, chunks[i]);
-            }
         } else {
             // Normal field rendering for non-dropdown fields
             let style = if is_active {
@@ -455,6 +449,11 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
     
     render_modal_button(f, button_layout[0], "Enter: Save", Color::Green);
     render_modal_button(f, button_layout[1], "Esc: Cancel", Color::Red);
+    
+    // Render the dropdown last, so it appears on top of everything else
+    if modal.active_field == 3 && modal.major_dropdown.is_open {
+        widgets::render_dropdown(f, &mut modal.major_dropdown, chunks[3]);
+    }
 }
 
 fn render_teacher_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {

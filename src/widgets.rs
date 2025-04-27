@@ -146,7 +146,7 @@ pub fn render_dropdown(f: &mut Frame, dropdown_state: &mut DropdownState, area: 
     // Calculate the position for the dropdown - right below the field
     let dropdown_area = Rect::new(
         area.x,
-        area.y + area.height,
+        area.y + 1, // Position right at the bottom edge of the field
         area.width,
         12.min(dropdown_state.options.len() as u16 + 2), // Height based on number of options with max of 12
     );
@@ -164,20 +164,18 @@ pub fn render_dropdown(f: &mut Frame, dropdown_state: &mut DropdownState, area: 
         })
         .collect();
     
-    // Create the list widget with highlighting
+    // Create the list widget with highlighting similar to the screenshot
     let list = List::new(items)
         .block(Block::default()
-            .title("Select Major")
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Cyan))
-            .border_type(BorderType::Rounded))
+            .border_type(BorderType::Plain))
         .highlight_style(
             Style::default()
                 .bg(Color::Blue)
                 .fg(Color::White)
                 .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol("→ ");
+        );
     
     // Render the dropdown list with the current selection state
     f.render_stateful_widget(list, dropdown_area, &mut dropdown_state.list_state);
