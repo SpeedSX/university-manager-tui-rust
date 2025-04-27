@@ -1,4 +1,5 @@
 use crate::models::{Faculty, Student, Teacher};
+use crate::terminal_size;
 use crate::widgets::{self, DropdownState};
 use anyhow::Result;
 use ratatui::{
@@ -904,4 +905,60 @@ pub fn get_modal_element_at_position(
     }
     
     None
+}
+
+// Check if a click is on a dropdown item and return the selected item if it is
+pub fn is_dropdown_item_clicked(position: (u16, u16), dropdown: &widgets::DropdownState, modal: &Modal) -> Option<String> {
+    // Only process if dropdown is open
+    if !dropdown.is_open {
+        return None;
+    }
+    
+    // Find the index of the major field
+    let major_field_index = 3; // We know it's index 3 in the student form
+    
+    // Calculate the position of the dropdown
+    let area = centered_rect(60, 60, terminal_size()); // Get the modal area
+    let inner_area = area.inner(Margin::new(1, 1));
+    
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(2)
+        .constraints(
+            [
+                Constraint::Length(3), // First Name
+                Constraint::Length(3), // Last Name
+                Constraint::Length(3), // Age
+                Constraint::Length(3), // Major
+                Constraint::Length(3), // GPA
+                Constraint::Length(3), // Buttons
+            ]
+            .as_ref(),
+        )
+        .split(inner_area);
+    
+    // Get the area of the Major field
+    let major_field_area = chunks[major_field_index];
+    
+    // Calculate the dropdown area using the same logic as in widgets::render_dropdown
+    let dropdown_area = Rect::new(
+        major_field_area.x,
+        major_field_area.y + 1,
+        major_field_area.width,
+        12.min(dropdown.options.len() as u16 + 2),
+    );
+    
+    // Check if click is within the dropdown area
+    if !is_position_in_rect(position, dropdown_area) {
+        return None;
+    }
+    
+    // Calculate which item was clicked (account for the top border)
+    let relative_y = position.1 - dropdown_area.y - 1;
+    if relative_y >= dropdown.options.len() as u16 {
+        return None;
+    }
+    
+    // Return the selected item
+    dropdown.options.get(relative_y as usize).map(|s| s.clone())
 }

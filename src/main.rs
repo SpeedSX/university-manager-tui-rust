@@ -112,6 +112,29 @@ impl App {
 
         // Check if this is a click in a modal
         if let AppMode::Modal(modal) = &self.mode {
+            // Special handling for student modal with open dropdown
+            if (matches!(modal.modal_type, ModalType::AddStudent | ModalType::EditStudent(_)) && 
+                modal.active_field == 3 && 
+                modal.major_dropdown.is_open) {
+                
+                // Check if click is in the dropdown list area
+                if let Some(selected_item) = modal::is_dropdown_item_clicked(position, &modal.major_dropdown, modal) {
+                    // Update the major field with the selected item
+                    if let AppMode::Modal(modal) = &mut self.mode {
+                        modal.inputs[3].1 = selected_item;
+                        modal.major_dropdown.is_open = false;
+                    }
+                    return Ok(());
+                }
+                
+                // If click is outside dropdown area, close the dropdown
+                if let AppMode::Modal(modal) = &mut self.mode {
+                    modal.major_dropdown.is_open = false;
+                }
+                return Ok(());
+            }
+
+            // Regular modal button detection
             if let Some(button) = modal::get_modal_element_at_position(position, modal, terminal_size()) {
                 match button {
                     ui::ModalButton::Confirm => self.handle_modal_key_event(KeyCode::Enter)?,

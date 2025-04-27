@@ -5,7 +5,8 @@ use ratatui::{
     symbols,
     text::{Line, Span, Text},
     widgets::{
-        Block, BorderType, Borders, List, ListItem, Paragraph, Row, Table, TableState, Tabs,
+        Block, BorderType, Borders, List, ListItem, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
+        Table, TableState, Tabs,
     },
     Frame,
 };
@@ -408,6 +409,18 @@ fn render_students_table(f: &mut Frame, area: Rect, app_state: &mut AppState, st
         .add_modifier(Modifier::BOLD);
     let normal_style = Style::default().bg(Color::Black);
     
+    // Create a layout that leaves space for the scrollbar on the right
+    let horizontal_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(10),     // Table area
+            Constraint::Length(1),   // Scrollbar area
+        ])
+        .split(area);
+    
+    let table_area = horizontal_layout[0];
+    let scrollbar_area = horizontal_layout[1];
+    
     let header_cells = ["Name", "Age", "Major", "GPA"]
         .iter()
         .map(|h| {
@@ -446,7 +459,31 @@ fn render_students_table(f: &mut Frame, area: Rect, app_state: &mut AppState, st
         .row_highlight_style(selected_style)
         .highlight_symbol(">> ");
     
-    f.render_stateful_widget(table, area, &mut app_state.student_list_state);
+    f.render_stateful_widget(table, table_area, &mut app_state.student_list_state);
+    
+    // Render scrollbar if we have items to scroll
+    if !students.is_empty() {
+        let scrollbar = Scrollbar::default()
+            .orientation(ScrollbarOrientation::VerticalRight)
+            .symbols(symbols::scrollbar::VERTICAL)
+            .begin_symbol(None)
+            .end_symbol(None)
+            .track_symbol(Some("│"))
+            .thumb_symbol("█");
+
+        // Calculate scrollbar values based on the current selection
+        let selected_index = app_state.student_list_state.selected().unwrap_or(0);
+        let total_items = students.len();
+        let max_visible_items = table_area.height.saturating_sub(4) as usize; // Subtract borders and header
+
+        f.render_stateful_widget(
+            scrollbar,
+            scrollbar_area,
+            &mut ScrollbarState::new(total_items)
+                .position(selected_index)
+                .viewport_content_length(max_visible_items),
+        );
+    }
 }
 
 fn render_teachers_table(f: &mut Frame, area: Rect, app_state: &mut AppState, teachers: &[Teacher]) {
@@ -455,6 +492,18 @@ fn render_teachers_table(f: &mut Frame, area: Rect, app_state: &mut AppState, te
         .fg(Color::White)
         .add_modifier(Modifier::BOLD);
     let normal_style = Style::default().bg(Color::Black);
+    
+    // Create a layout that leaves space for the scrollbar on the right
+    let horizontal_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(10),     // Table area
+            Constraint::Length(1),   // Scrollbar area
+        ])
+        .split(area);
+    
+    let table_area = horizontal_layout[0];
+    let scrollbar_area = horizontal_layout[1];
     
     let header_cells = ["Name", "Age", "Department", "Title"]
         .iter()
@@ -494,7 +543,31 @@ fn render_teachers_table(f: &mut Frame, area: Rect, app_state: &mut AppState, te
         .row_highlight_style(selected_style)
         .highlight_symbol(">> ");
     
-    f.render_stateful_widget(table, area, &mut app_state.teacher_list_state);
+    f.render_stateful_widget(table, table_area, &mut app_state.teacher_list_state);
+    
+    // Render scrollbar if we have items to scroll
+    if !teachers.is_empty() {
+        let scrollbar = Scrollbar::default()
+            .orientation(ScrollbarOrientation::VerticalRight)
+            .symbols(symbols::scrollbar::VERTICAL)
+            .begin_symbol(None)
+            .end_symbol(None)
+            .track_symbol(Some("│"))
+            .thumb_symbol("█");
+
+        // Calculate scrollbar values based on the current selection
+        let selected_index = app_state.teacher_list_state.selected().unwrap_or(0);
+        let total_items = teachers.len();
+        let max_visible_items = table_area.height.saturating_sub(4) as usize; // Subtract borders and header
+
+        f.render_stateful_widget(
+            scrollbar,
+            scrollbar_area,
+            &mut ScrollbarState::new(total_items)
+                .position(selected_index)
+                .viewport_content_length(max_visible_items),
+        );
+    }
 }
 
 fn render_faculties_table(f: &mut Frame, area: Rect, app_state: &mut AppState, faculties: &[Faculty]) {
@@ -503,6 +576,18 @@ fn render_faculties_table(f: &mut Frame, area: Rect, app_state: &mut AppState, f
         .fg(Color::White)
         .add_modifier(Modifier::BOLD);
     let normal_style = Style::default().bg(Color::Black);
+    
+    // Create a layout that leaves space for the scrollbar on the right
+    let horizontal_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(10),     // Table area
+            Constraint::Length(1),   // Scrollbar area
+        ])
+        .split(area);
+    
+    let table_area = horizontal_layout[0];
+    let scrollbar_area = horizontal_layout[1];
     
     let header_cells = ["Name", "Building", "Head", "Est. Year", "Staff"]
         .iter()
@@ -544,7 +629,31 @@ fn render_faculties_table(f: &mut Frame, area: Rect, app_state: &mut AppState, f
         .row_highlight_style(selected_style)
         .highlight_symbol(">> ");
     
-    f.render_stateful_widget(table, area, &mut app_state.faculty_list_state);
+    f.render_stateful_widget(table, table_area, &mut app_state.faculty_list_state);
+    
+    // Render scrollbar if we have items to scroll
+    if !faculties.is_empty() {
+        let scrollbar = Scrollbar::default()
+            .orientation(ScrollbarOrientation::VerticalRight)
+            .symbols(symbols::scrollbar::VERTICAL)
+            .begin_symbol(None)
+            .end_symbol(None)
+            .track_symbol(Some("│"))
+            .thumb_symbol("█");
+
+        // Calculate scrollbar values based on the current selection
+        let selected_index = app_state.faculty_list_state.selected().unwrap_or(0);
+        let total_items = faculties.len();
+        let max_visible_items = table_area.height.saturating_sub(4) as usize; // Subtract borders and header
+
+        f.render_stateful_widget(
+            scrollbar,
+            scrollbar_area,
+            &mut ScrollbarState::new(total_items)
+                .position(selected_index)
+                .viewport_content_length(max_visible_items),
+        );
+    }
 }
 
 fn render_action_bar(f: &mut Frame, area: Rect) {
