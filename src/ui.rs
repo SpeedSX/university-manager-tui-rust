@@ -10,6 +10,9 @@ use ratatui::{
     Frame,
 };
 
+// Tab titles - used both for rendering and click detection
+const TAB_TITLES: &[&str] = &["Students (1)", "Teachers (2)", "Faculties (3)"];
+
 // Current active tab
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActiveTab {
@@ -176,16 +179,35 @@ pub fn get_element_at_position(
     let terminal_size = crossterm::terminal::size().unwrap_or((80, 24));
     let terminal_width = terminal_size.0;
     
-    // Tab handling - first 3 rows - adjusted with better calculation
-    if y <= 2 {
-        // For tabs, use exact divisions - each tab is exactly 1/3 of the width
-        let tab_width = terminal_width / 3;
-        
-        if x < tab_width {
-            return UiElement::Tab(ActiveTab::Students);
-        } else if x < tab_width * 2 {
-            return UiElement::Tab(ActiveTab::Teachers);
-        } else {
+    // Tab handling - considering the header area (0-2) including borders
+    if y < 3 {
+        // The tabs are inside a bordered block
+        // We need to account for the left border (1 column) and make sure we're inside the block
+        if x > 0 && x < terminal_width - 1 {
+            // Add left border offset
+            let mut offset = 1;
+            
+            // Calculate the boundaries for each tab based on the actual title lengths
+            // with some padding for visual separation and highlight area
+            for (i, title) in TAB_TITLES.iter().enumerate() {
+                // Calculate width: title length + some padding (4 chars)
+                let tab_width = title.len() as u16 + 4;
+                
+                // If this position is within this tab's bounds
+                if x < offset + tab_width {
+                    return match i {
+                        0 => UiElement::Tab(ActiveTab::Students),
+                        1 => UiElement::Tab(ActiveTab::Teachers),
+                        2 => UiElement::Tab(ActiveTab::Faculties),
+                        _ => UiElement::None, // shouldn't happen
+                    };
+                }
+                
+                // Move offset to the end of this tab
+                offset += tab_width;
+            }
+            
+            // If we get here and we're still within the tab bar, it's the last tab
             return UiElement::Tab(ActiveTab::Faculties);
         }
     }
@@ -226,12 +248,8 @@ pub fn get_element_at_position(
         }
     }
     
-    // Table rows handling - CORRECTED by increasing offset by 1 
-    // Based on testing, we need to increase the offset to fix grid selection
-    let table_header_row = 6; 
-    
-    // Data rows start at position 9 (increased by 1 from previous value)
-    let data_start_row = 9;  // CORRECTED: Changed from 7 to 9 to fix grid selection
+    // Table rows handling
+    let data_start_row = 9;  
     
     // Table ends right above action buttons
     let table_end_row = action_bar_row;
@@ -302,7 +320,7 @@ pub fn render(f: &mut Frame, app_state: &mut AppState, students: &[Student], tea
 }
 
 fn render_header(f: &mut Frame, area: Rect, app_state: &AppState) {
-    let titles: Vec<_> = ["Students (1)", "Teachers (2)", "Faculties (3)"]
+    let titles: Vec<_> = TAB_TITLES
         .iter()
         .enumerate()
         .map(|(i, t)| {
