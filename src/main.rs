@@ -2,6 +2,7 @@ mod data_manager;
 mod modal;
 mod models;
 mod ui;
+mod widgets;
 
 use crate::data_manager::DataManager;
 use crate::modal::{Modal, ModalType};
@@ -253,12 +254,41 @@ impl App {
     fn handle_modal_key_event(&mut self, key: KeyCode) -> Result<()> {
         // Handle common modal actions that don't require direct modal access
         if key == KeyCode::Esc {
+            if let AppMode::Modal(modal) = &mut self.mode {
+                // If dropdown is open, close it instead of closing the modal
+                if modal.active_field == 3 && // Major field
+                   matches!(modal.modal_type, ModalType::AddStudent | ModalType::EditStudent(_)) &&
+                   modal.major_dropdown.is_open {
+                    modal.major_dropdown.is_open = false;
+                    return Ok(());
+                }
+            }
             self.mode = AppMode::Normal;
             return Ok(());
         }
 
         // For Enter key, we need special handling to avoid borrowing conflicts
         if key == KeyCode::Enter {
+            // Special handling for dropdowns
+            if let AppMode::Modal(modal) = &mut self.mode {
+                // If this is a student form and major field is active
+                if modal.active_field == 3 && // Major field 
+                   matches!(modal.modal_type, ModalType::AddStudent | ModalType::EditStudent(_)) {
+                    if modal.major_dropdown.is_open {
+                        // If dropdown is open, select current item and close dropdown
+                        if let Some(selected) = modal.major_dropdown.selected_item() {
+                            modal.inputs[3].1 = selected.clone();
+                            modal.major_dropdown.is_open = false;
+                        }
+                        return Ok(());
+                    } else {
+                        // Open dropdown when Enter is pressed on the major field
+                        modal.major_dropdown.is_open = true;
+                        return Ok(());
+                    }
+                }
+            }
+
             // Clone modal data that we need before changing borrowing
             let modal_type = if let AppMode::Modal(modal) = &self.mode {
                 modal.modal_type.clone()
@@ -368,10 +398,24 @@ impl App {
         if let AppMode::Modal(modal) = &mut self.mode {
             match key {
                 KeyCode::Up => {
-                    modal.prev_field();
+                    // If dropdown is open, navigate dropdown
+                    if modal.active_field == 3 && 
+                       matches!(modal.modal_type, ModalType::AddStudent | ModalType::EditStudent(_)) &&
+                       modal.major_dropdown.is_open {
+                        modal.major_dropdown.select_prev();
+                    } else {
+                        modal.prev_field();
+                    }
                 }
                 KeyCode::Down => {
-                    modal.next_field();
+                    // If dropdown is open, navigate dropdown
+                    if modal.active_field == 3 && 
+                       matches!(modal.modal_type, ModalType::AddStudent | ModalType::EditStudent(_)) &&
+                       modal.major_dropdown.is_open {
+                        modal.major_dropdown.select_next();
+                    } else {
+                        modal.next_field();
+                    }
                 }
                 KeyCode::Tab => {
                     modal.next_field();
@@ -381,6 +425,15 @@ impl App {
                 }
                 KeyCode::Backspace => {
                     modal.backspace();
+                }
+                KeyCode::Char(' ') => {
+                    // Special handling for Space key on Major field - toggle dropdown
+                    if modal.active_field == 3 && 
+                       matches!(modal.modal_type, ModalType::AddStudent | ModalType::EditStudent(_)) {
+                        modal.major_dropdown.toggle_open();
+                    } else {
+                        modal.input(' ');
+                    }
                 }
                 KeyCode::Char(c) => {
                     // Handle regular character input (including 'j' and 'k')

@@ -1,4 +1,5 @@
 use crate::models::{Faculty, Student, Teacher};
+use crate::widgets::{self, DropdownState};
 use anyhow::Result;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Margin, Rect},
@@ -65,6 +66,7 @@ pub struct Modal {
     pub inputs: Vec<(InputField, String)>,
     pub active_field: usize,
     pub confirm: bool,
+    pub major_dropdown: DropdownState,
 }
 
 impl Modal {
@@ -122,6 +124,7 @@ impl Modal {
             inputs,
             active_field: 0,
             confirm: false,
+            major_dropdown: DropdownState::new(widgets::MAJORS.iter().map(|&s| s.into()).collect()), // Initialize with predefined majors
         }
     }
 
@@ -397,30 +400,47 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
         let (field, value) = &modal.inputs[i];
         let is_active = modal.active_field == i;
         
-        let style = if is_active {
-            Style::default().fg(Color::Yellow).bg(Color::DarkGray)
+        // Special handling for Major field - show dropdown indicator
+        if i == 3 { // Major field is at index 3
+            // Use the function from widgets module to render the dropdown field
+            widgets::render_dropdown_field(
+                f,
+                chunks[i],
+                &field.to_string(),
+                &value,
+                is_active,
+                modal.major_dropdown.is_open
+            );
+            
+            // If this field is active and dropdown is open, show the dropdown
+            if is_active && modal.major_dropdown.is_open {
+                widgets::render_dropdown(f, &mut modal.major_dropdown, chunks[i]);
+            }
         } else {
-            Style::default()
-        };
-        
-        let field_block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(style);
-        
-        let cursor = if is_active { "|" } else { "" };
-        let label_style = Style::default().fg(Color::Cyan);
-        let value_style = Style::default().fg(Color::White);
-        
-        let text = Line::from(vec![
-            Span::styled(format!("{}: ", field), label_style),
-            Span::styled(value.clone(), value_style),
-            Span::styled(cursor, Style::default().fg(Color::Yellow)),
-        ]);
-        
-        let paragraph = Paragraph::new(text)
-            .block(field_block);
-        
-        f.render_widget(paragraph, chunks[i]);
+            // Normal field rendering for non-dropdown fields
+            let style = if is_active {
+                Style::default().fg(Color::Yellow).bg(Color::DarkGray)
+            } else {
+                Style::default()
+            };
+            
+            let field_block = Block::default()
+                .borders(Borders::ALL)
+                .border_style(style);
+            
+            let cursor = if is_active { "|" } else { "" };
+            let label_style = Style::default().fg(Color::Cyan);
+            let value_style = Style::default().fg(Color::White);
+            
+            let text = Line::from(vec![
+                Span::styled(format!("{}: ", field), label_style),
+                Span::styled(value.clone(), value_style),
+                Span::styled(cursor, Style::default().fg(Color::Yellow)),
+            ]);
+            
+            let paragraph = Paragraph::new(text).block(field_block);
+            f.render_widget(paragraph, chunks[i]);
+        }
     }
     
     // Render buttons with colors
@@ -491,11 +511,7 @@ fn render_teacher_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
         let label_style = Style::default().fg(Color::Cyan);
         let value_style = Style::default().fg(Color::White);
         
-        let text = Line::from(vec![
-            Span::styled(format!("{}: ", field), label_style),
-            Span::styled(value.clone(), value_style),
-            Span::styled(cursor, Style::default().fg(Color::Yellow)),
-        ]);
+        let text = Line::from(vec![Span::styled(format!("{}: ", field), label_style), Span::styled(value.clone(), value_style), Span::styled(cursor, Style::default().fg(Color::Yellow)),]);
         
         let paragraph = Paragraph::new(text)
             .block(field_block);
@@ -571,11 +587,7 @@ fn render_faculty_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
         let label_style = Style::default().fg(Color::Cyan);
         let value_style = Style::default().fg(Color::White);
         
-        let text = Line::from(vec![
-            Span::styled(format!("{}: ", field), label_style),
-            Span::styled(value.clone(), value_style),
-            Span::styled(cursor, Style::default().fg(Color::Yellow)),
-        ]);
+        let text = Line::from(vec![Span::styled(format!("{}: ", field), label_style), Span::styled(value.clone(), value_style), Span::styled(cursor, Style::default().fg(Color::Yellow)),]);
         
         let paragraph = Paragraph::new(text)
             .block(field_block);
