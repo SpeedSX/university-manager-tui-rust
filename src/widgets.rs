@@ -117,19 +117,15 @@ pub fn render_dropdown_field(
     is_active: bool,
     is_open: bool,
 ) {
-    let style = if is_active {
-        Style::default().fg(Color::Yellow).bg(Color::DarkGray)
+    // Highlight only the label when active
+    let label_style = if is_active {
+        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
     } else {
-        Style::default()
+        Style::default().fg(Color::Cyan)
     };
     
-    let field_block = Block::default()
-        .borders(Borders::ALL)
-        .border_style(style);
-    
-    let label_style = Style::default().fg(Color::Cyan);
     let value_style = Style::default().fg(Color::White);
-    let dropdown_indicator = if is_active { " ▼ " } else { "" };
+    let dropdown_indicator = if is_active { " ▼" } else { "" };
     
     let text = Line::from(vec![
         Span::styled(format!("{}: ", field_name), label_style),
@@ -137,7 +133,7 @@ pub fn render_dropdown_field(
         Span::styled(dropdown_indicator, Style::default().fg(Color::Yellow)),
     ]);
     
-    let paragraph = Paragraph::new(text).block(field_block);
+    let paragraph = Paragraph::new(text);
     f.render_widget(paragraph, area);
 }
 

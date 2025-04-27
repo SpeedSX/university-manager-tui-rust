@@ -376,56 +376,62 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
     f.render_widget(Clear, area); // Clear the area first
     f.render_widget(block.clone(), area);
     
-    // Create inner area for content - use Margin::new(1, 1) for a 1-character margin
+    // Create inner area for content with a margin
     let inner_area = area.inner(Margin::new(1, 1));
     
-    // Create layout for fields
+    // Create layout for fields with less spacing between them
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(2)
+        .margin(1) // Reduced margin from 2 to 1
         .constraints(
             [
-                Constraint::Length(3), // First Name
-                Constraint::Length(3), // Last Name
-                Constraint::Length(3), // Age
-                Constraint::Length(3), // Major
-                Constraint::Length(3), // GPA
+                Constraint::Length(2), // First Name (reduced from 3)
+                Constraint::Length(2), // Last Name
+                Constraint::Length(2), // Age
+                Constraint::Length(2), // Major
+                Constraint::Length(2), // GPA
+                Constraint::Length(1), // Separator
                 Constraint::Length(3), // Buttons
             ]
             .as_ref(),
         )
         .split(inner_area);
     
-    // Render all fields first
+    // Render the fields without borders
     for i in 0..5 {
         let (field, value) = &modal.inputs[i];
         let is_active = modal.active_field == i;
         
-        // For Major field, just render the field (dropdown will come later)
+        // For Major field (dropdown)
         if i == 3 { // Major field is at index 3
-            widgets::render_dropdown_field(
-                f,
-                chunks[i],
-                &field.to_string(),
-                &value,
-                is_active,
-                modal.major_dropdown.is_open
-            );
-        } else {
-            // Normal field rendering for non-dropdown fields
-            let style = if is_active {
-                Style::default().fg(Color::Yellow).bg(Color::DarkGray)
+            // Create dropdown field without borders
+            let label_style = if is_active {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
             } else {
-                Style::default()
+                Style::default().fg(Color::Cyan)
             };
             
-            let field_block = Block::default()
-                .borders(Borders::ALL)
-                .border_style(style);
-            
-            let cursor = if is_active { "|" } else { "" };
-            let label_style = Style::default().fg(Color::Cyan);
             let value_style = Style::default().fg(Color::White);
+            let dropdown_indicator = if is_active { " ▼" } else { "" };
+            
+            let text = Line::from(vec![
+                Span::styled(format!("{}: ", field), label_style),
+                Span::styled(value, value_style),
+                Span::styled(dropdown_indicator, Style::default().fg(Color::Yellow)),
+            ]);
+            
+            let paragraph = Paragraph::new(text);
+            f.render_widget(paragraph, chunks[i]);
+        } else {
+            // Regular field without borders
+            let label_style = if is_active {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::Cyan)
+            };
+            
+            let value_style = Style::default().fg(Color::White);
+            let cursor = if is_active { "|" } else { "" };
             
             let text = Line::from(vec![
                 Span::styled(format!("{}: ", field), label_style),
@@ -433,13 +439,35 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
                 Span::styled(cursor, Style::default().fg(Color::Yellow)),
             ]);
             
-            let paragraph = Paragraph::new(text).block(field_block);
+            let paragraph = Paragraph::new(text);
             f.render_widget(paragraph, chunks[i]);
+        }
+        
+        // Add a line separator after each field except the last one
+        if i < 4 {
+            let separator = Block::default()
+                .borders(Borders::BOTTOM)
+                .border_style(Style::default().fg(Color::DarkGray));
+            
+            let separator_area = Rect::new(
+                chunks[i].x,
+                chunks[i].y + chunks[i].height - 1,
+                chunks[i].width,
+                1
+            );
+            
+            f.render_widget(separator, separator_area);
         }
     }
     
-    // Render buttons with colors
-    let button_area = chunks[5];
+    // Add a separator line before the buttons
+    let separator = Block::default()
+        .borders(Borders::BOTTOM)
+        .border_style(Style::default().fg(Color::DarkGray));
+    f.render_widget(separator, chunks[5]);
+    
+    // Render buttons
+    let button_area = chunks[6];
     let button_layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -451,9 +479,17 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
     render_modal_button(f, button_layout[0], "Enter: Save", Color::Green);
     render_modal_button(f, button_layout[1], "Esc: Cancel", Color::Red);
     
-    // Render the dropdown last, so it appears on top of everything else
+    // Render the dropdown on top if it's open
     if modal.active_field == 3 && modal.major_dropdown.is_open {
-        widgets::render_dropdown(f, &mut modal.major_dropdown, chunks[3]);
+        // Position the dropdown right below the major field
+        let dropdown_rect = Rect::new(
+            chunks[3].x,
+            chunks[3].y + 1, // Position right below the field
+            chunks[3].width,
+            10.min(modal.major_dropdown.options.len() as u16 + 2) // Limit dropdown height
+        );
+        
+        widgets::render_dropdown(f, &mut modal.major_dropdown, dropdown_rect);
     }
 }
 
@@ -472,55 +508,76 @@ fn render_teacher_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
     f.render_widget(Clear, area); // Clear the area first
     f.render_widget(block.clone(), area);
     
-    // Create inner area for content - use Margin::new(1, 1) for a 1-character margin
+    // Create inner area for content with a margin
     let inner_area = area.inner(Margin::new(1, 1));
     
-    // Create layout for fields
+    // Create layout for fields with less spacing between them
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(2)
+        .margin(1) // Reduced margin from 2 to 1
         .constraints(
             [
-                Constraint::Length(3), // First Name
-                Constraint::Length(3), // Last Name
-                Constraint::Length(3), // Age
-                Constraint::Length(3), // Department
-                Constraint::Length(3), // Title
+                Constraint::Length(2), // First Name
+                Constraint::Length(2), // Last Name
+                Constraint::Length(2), // Age
+                Constraint::Length(2), // Department
+                Constraint::Length(2), // Title
+                Constraint::Length(1), // Separator
                 Constraint::Length(3), // Buttons
             ]
             .as_ref(),
         )
         .split(inner_area);
     
-    // Render fields
+    // Render the fields without borders
     for i in 0..5 {
         let (field, value) = &modal.inputs[i];
         let is_active = modal.active_field == i;
         
-        let style = if is_active {
-            Style::default().fg(Color::Yellow).bg(Color::DarkGray)
+        // Regular field without borders
+        let label_style = if is_active {
+            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
         } else {
-            Style::default()
+            Style::default().fg(Color::Cyan)
         };
         
-        let field_block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(style);
-        
-        let cursor = if is_active { "|" } else { "" };
-        let label_style = Style::default().fg(Color::Cyan);
         let value_style = Style::default().fg(Color::White);
+        let cursor = if is_active { "|" } else { "" };
         
-        let text = Line::from(vec![Span::styled(format!("{}: ", field), label_style), Span::styled(value.clone(), value_style), Span::styled(cursor, Style::default().fg(Color::Yellow)),]);
+        let text = Line::from(vec![
+            Span::styled(format!("{}: ", field), label_style),
+            Span::styled(value.clone(), value_style),
+            Span::styled(cursor, Style::default().fg(Color::Yellow)),
+        ]);
         
-        let paragraph = Paragraph::new(text)
-            .block(field_block);
-        
+        let paragraph = Paragraph::new(text);
         f.render_widget(paragraph, chunks[i]);
+        
+        // Add a line separator after each field except the last one
+        if i < 4 {
+            let separator = Block::default()
+                .borders(Borders::BOTTOM)
+                .border_style(Style::default().fg(Color::DarkGray));
+            
+            let separator_area = Rect::new(
+                chunks[i].x,
+                chunks[i].y + chunks[i].height - 1,
+                chunks[i].width,
+                1
+            );
+            
+            f.render_widget(separator, separator_area);
+        }
     }
     
-    // Render buttons with colors
-    let button_area = chunks[5];
+    // Add a separator line before the buttons
+    let separator = Block::default()
+        .borders(Borders::BOTTOM)
+        .border_style(Style::default().fg(Color::DarkGray));
+    f.render_widget(separator, chunks[5]);
+    
+    // Render buttons
+    let button_area = chunks[6];
     let button_layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
@@ -548,55 +605,60 @@ fn render_faculty_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
     f.render_widget(Clear, area); // Clear the area first
     f.render_widget(block.clone(), area);
     
-    // Create inner area for content - use Margin::new(1, 1) for a 1-character margin
+    // Create inner area for content with a margin
     let inner_area = area.inner(Margin::new(1, 1));
     
-    // Create layout for fields
+    // Create layout for fields with less spacing between them
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(2)
+        .margin(1) // Reduced margin from 2 to 1
         .constraints(
             [
-                Constraint::Length(3), // Name
-                Constraint::Length(3), // Building
-                Constraint::Length(3), // Head Name
-                Constraint::Length(3), // Established Year
-                Constraint::Length(3), // Number of Staff
+                Constraint::Length(2), // Name
+                Constraint::Length(2), // Building
+                Constraint::Length(2), // Head Name
+                Constraint::Length(2), // Established Year
+                Constraint::Length(2), // Number of Staff
+                Constraint::Length(1), // Separator
                 Constraint::Length(3), // Buttons
             ]
             .as_ref(),
         )
         .split(inner_area);
     
-    // Render fields
+    // Render the fields without borders
     for i in 0..5 {
         let (field, value) = &modal.inputs[i];
         let is_active = modal.active_field == i;
         
-        let style = if is_active {
-            Style::default().fg(Color::Yellow).bg(Color::DarkGray)
+        // Regular field without borders
+        let label_style = if is_active {
+            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
         } else {
-            Style::default()
+            Style::default().fg(Color::Cyan)
         };
         
-        let field_block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(style);
-        
-        let cursor = if is_active { "|" } else { "" };
-        let label_style = Style::default().fg(Color::Cyan);
         let value_style = Style::default().fg(Color::White);
+        let cursor = if is_active { "|" } else { "" };
         
-        let text = Line::from(vec![Span::styled(format!("{}: ", field), label_style), Span::styled(value.clone(), value_style), Span::styled(cursor, Style::default().fg(Color::Yellow)),]);
+        let text = Line::from(vec![
+            Span::styled(format!("{}: ", field), label_style),
+            Span::styled(value.clone(), value_style),
+            Span::styled(cursor, Style::default().fg(Color::Yellow)),
+        ]);
         
-        let paragraph = Paragraph::new(text)
-            .block(field_block);
-        
+        let paragraph = Paragraph::new(text);
         f.render_widget(paragraph, chunks[i]);
     }
     
-    // Render buttons with colors
-    let button_area = chunks[5];
+    // Add a separator line before the buttons
+    let separator = Block::default()
+        .borders(Borders::BOTTOM)
+        .border_style(Style::default().fg(Color::DarkGray));
+    f.render_widget(separator, chunks[5]);
+    
+    // Render buttons
+    let button_area = chunks[6];
     let button_layout = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
