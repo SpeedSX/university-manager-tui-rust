@@ -1,6 +1,7 @@
 use crate::models::{Faculty, Student, Teacher};
 use crate::terminal_size;
 use crate::widgets::{self, DropdownState};
+use crate::ui::centered_rect; // Import centered_rect from ui.rs
 use anyhow::Result;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Margin, Rect},
@@ -412,7 +413,12 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
             };
             
             let value_style = Style::default().fg(Color::White);
-            let dropdown_indicator = if is_active { " ▼" } else { "" };
+            // Show dropdown indicator with different appearance depending on whether it's open
+            let dropdown_indicator = if is_active {
+                if modal.major_dropdown.is_open { " ▲" } else { " ▼" }
+            } else {
+                ""
+            };
             
             let text = Line::from(vec![
                 Span::styled(format!("{}: ", field), label_style),
@@ -470,10 +476,12 @@ fn render_student_modal(f: &mut Frame, modal: &mut Modal, area: Rect) {
     let button_area = chunks[6];
     let button_layout = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(50),
-            Constraint::Percentage(50),
-        ])
+        .constraints(
+            [
+                Constraint::Percentage(50),
+                Constraint::Percentage(50),
+            ]
+        )
         .split(button_area);
     
     render_modal_button(f, button_layout[0], "Enter: Save", Color::Green);
@@ -794,27 +802,6 @@ fn render_modal_button(f: &mut Frame, area: Rect, text: &str, color: Color) {
     f.render_widget(button, area);
 }
 
-// Helper function to create a centered rectangle
-fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
-        ])
-        .split(r);
-
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
-        ])
-        .split(popup_layout[1])[1]
-}
-
 // Helper function to check if a position is within a rectangle
 pub fn is_position_in_rect(position: (u16, u16), rect: ratatui::layout::Rect) -> bool {
     let (x, y) = position;
@@ -917,30 +904,31 @@ pub fn get_modal_element_at_position(
         return None;
     }
     
-    // Create inner area for content
+    // Create inner area for content with the same margin as in render functions
     let inner_area = modal_area.inner(Margin::new(1, 1));
     
-    // For other modals with form fields
+    // For other modals with form fields - use the same layout as in the render_*_modal functions
     match modal.modal_type {
         ModalType::AddStudent | ModalType::EditStudent(_) |
         ModalType::AddTeacher | ModalType::EditTeacher(_) |
         ModalType::AddFaculty | ModalType::EditFaculty(_) => {
-            // Layout for form fields
+            // Layout for form fields - MATCH THE SAME LAYOUT AS IN THE RENDER FUNCTION
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .margin(2)
+                .margin(1) // Use 1 instead of 2 to match render functions
                 .constraints([
-                    Constraint::Length(3), // Field 1
-                    Constraint::Length(3), // Field 2
-                    Constraint::Length(3), // Field 3
-                    Constraint::Length(3), // Field 4
-                    Constraint::Length(3), // Field 5
+                    Constraint::Length(2), // Field 1 (2 instead of 3)
+                    Constraint::Length(2), // Field 2
+                    Constraint::Length(2), // Field 3
+                    Constraint::Length(2), // Field 4
+                    Constraint::Length(2), // Field 5
+                    Constraint::Length(1), // Separator
                     Constraint::Length(3), // Buttons
                 ])
                 .split(inner_area);
                 
-            // Check the buttons row
-            let button_area = chunks[5];
+            // Check the buttons row - now at index 6 instead of 5
+            let button_area = chunks[6]; // Index 6 for buttons
             let button_layout = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([
@@ -949,12 +937,12 @@ pub fn get_modal_element_at_position(
                 ])
                 .split(button_area);
                 
-            // Check if clicking on the save button - use the entire button area
+            // Check if clicking on the save button - this must take priority
             if is_position_in_rect(position, button_layout[0]) {
                 return Some(crate::ui::ModalButton::Confirm);
             }
             
-            // Check if clicking on the cancel button - use the entire button area
+            // Check if clicking on the cancel button - this must take priority
             if is_position_in_rect(position, button_layout[1]) {
                 return Some(crate::ui::ModalButton::Cancel);
             }
@@ -976,47 +964,64 @@ pub fn is_dropdown_item_clicked(position: (u16, u16), dropdown: &widgets::Dropdo
         return None;
     }
     
-    // Find the index of the major field
-    let major_field_index = 3; // We know it's index 3 in the student form
-    
-    // Calculate the position of the dropdown
+    // First check if the click is on any button - buttons should take priority
     let area = centered_rect(60, 60, terminal_size()); // Get the modal area
     let inner_area = area.inner(Margin::new(1, 1));
     
+    // Use the same layout parameters as in render_student_modal
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(2)
+        .margin(1) // Use 1 to match the rendering function
         .constraints(
             [
-                Constraint::Length(3), // First Name
-                Constraint::Length(3), // Last Name
-                Constraint::Length(3), // Age
-                Constraint::Length(3), // Major
-                Constraint::Length(3), // GPA
+                Constraint::Length(2), // First Name
+                Constraint::Length(2), // Last Name
+                Constraint::Length(2), // Age
+                Constraint::Length(2), // Major
+                Constraint::Length(2), // GPA
+                Constraint::Length(1), // Separator
                 Constraint::Length(3), // Buttons
             ]
             .as_ref(),
         )
         .split(inner_area);
     
+    // Check if the click is on any button
+    let button_area = chunks[6];
+    let button_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(50),
+            Constraint::Percentage(50),
+        ])
+        .split(button_area);
+    
+    // If clicking on any button, don't process as dropdown item
+    if is_position_in_rect(position, button_layout[0]) || is_position_in_rect(position, button_layout[1]) {
+        return None;
+    }
+    
+    // Find the index of the major field
+    let major_field_index = 3; // We know it's index 3 in the student form
+    
     // Get the area of the Major field
     let major_field_area = chunks[major_field_index];
     
-    // Calculate the dropdown area using the same logic as in widgets::render_dropdown
-    let dropdown_area = Rect::new(
+    // Calculate the dropdown area using the same logic as in render_student_modal
+    let dropdown_rect = Rect::new(
         major_field_area.x,
-        major_field_area.y + 1,
+        major_field_area.y + 1, // Position right below the field
         major_field_area.width,
-        12.min(dropdown.options.len() as u16 + 2),
+        10.min(dropdown.options.len() as u16 + 2) // Limit dropdown height (same as in render function)
     );
     
     // Check if click is within the dropdown area
-    if !is_position_in_rect(position, dropdown_area) {
+    if !is_position_in_rect(position, dropdown_rect) {
         return None;
     }
     
     // Calculate which item was clicked (account for the top border)
-    let relative_y = position.1 - dropdown_area.y - 1;
+    let relative_y = position.1 - dropdown_rect.y - 1;
     if relative_y >= dropdown.options.len() as u16 {
         return None;
     }

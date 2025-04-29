@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ratatui = "0.29.0"  # TUI library
-crossterm = "0.29.0"  # Terminal manipulation
-serde = { version = "1.0", features = ["derive"] }  # Serialization/deserialization
-serde_json = "1.0"  # JSON handling
-uuid = { version = "1.4", features = ["v4", "serde"] }  # For generating IDs
+ratatui = "^0.29.0"  # TUI library
+crossterm = "^0.29.0"  # Terminal manipulation
+serde = { version = "1", features = ["derive"] }  # Serialization/deserialization
+serde_json = "1"  # JSON handling
+uuid = { version = "1", features = ["v4", "serde"] }  # For generating IDs
 anyhow = "1.0"  # Error handling
-chrono = { version = "0.4", features = ["serde"] }  # Date/time utilities
+chrono = { version = "^0.4", features = ["serde"] }  # Date/time utilities

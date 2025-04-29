@@ -108,35 +108,6 @@ impl DropdownState {
     }
 }
 
-// Function to render a dropdown field - the field itself
-pub fn render_dropdown_field(
-    f: &mut Frame,
-    area: Rect,
-    field_name: &str,
-    value: &str,
-    is_active: bool,
-    is_open: bool,
-) {
-    // Highlight only the label when active
-    let label_style = if is_active {
-        Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(Color::Cyan)
-    };
-    
-    let value_style = Style::default().fg(Color::White);
-    let dropdown_indicator = if is_active { " ▼" } else { "" };
-    
-    let text = Line::from(vec![
-        Span::styled(format!("{}: ", field_name), label_style),
-        Span::styled(value, value_style),
-        Span::styled(dropdown_indicator, Style::default().fg(Color::Yellow)),
-    ]);
-    
-    let paragraph = Paragraph::new(text);
-    f.render_widget(paragraph, area);
-}
-
 // Function to render the dropdown list
 pub fn render_dropdown(f: &mut Frame, dropdown_state: &mut DropdownState, area: Rect) {
     // Calculate the position for the dropdown - right below the field

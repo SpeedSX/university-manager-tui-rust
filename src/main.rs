@@ -16,6 +16,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{prelude::*, widgets::*};
+use ui::centered_rect;
 use std::{
     io,
     time::{Duration, Instant},
@@ -111,40 +112,71 @@ impl App {
         let position = (mouse.column, mouse.row);
 
         // Check if this is a click in a modal
-        if let AppMode::Modal(modal) = &self.mode {
-            // Special handling for student modal with open dropdown
-            if (matches!(modal.modal_type, ModalType::AddStudent | ModalType::EditStudent(_)) && 
-                modal.active_field == 3 && 
-                modal.major_dropdown.is_open) {
-                
-                // Check if click is in the dropdown list area
-                if let Some(selected_item) = modal::is_dropdown_item_clicked(position, &modal.major_dropdown, modal) {
-                    // Update the major field with the selected item
-                    if let AppMode::Modal(modal) = &mut self.mode {
-                        modal.inputs[3].1 = selected_item;
-                        modal.major_dropdown.is_open = false;
-                    }
-                    return Ok(());
-                }
-                
-                // If click is outside dropdown area, close the dropdown
-                if let AppMode::Modal(modal) = &mut self.mode {
-                    modal.major_dropdown.is_open = false;
-                }
-                return Ok(());
-            }
-
-            // Regular modal button detection
+        if let AppMode::Modal(modal) = &mut self.mode {
+            // IMPORTANT: Check for button clicks FIRST before any dropdown interaction
+            // This ensures button clicks take priority, especially for the Save button
             if let Some(button) = modal::get_modal_element_at_position(position, modal, terminal_size()) {
                 match button {
-                    ui::ModalButton::Confirm => self.handle_modal_key_event(KeyCode::Enter)?,
-                    ui::ModalButton::Cancel => self.handle_modal_key_event(KeyCode::Esc)?,
+                    ui::ModalButton::Confirm => {
+                        // Close any open dropdown and handle save
+                        modal.major_dropdown.is_open = false;
+                        self.handle_modal_key_event(KeyCode::Enter)?;
+                        return Ok(());
+                    },
+                    ui::ModalButton::Cancel => {
+                        // Close any open dropdown and handle cancel
+                        modal.major_dropdown.is_open = false;
+                        self.handle_modal_key_event(KeyCode::Esc)?;
+                        return Ok(());
+                    },
                 }
-                return Ok(());
+            }
+            
+            // After checking buttons and not finding any match, handle dropdown interactions
+            if matches!(modal.modal_type, ModalType::AddStudent | ModalType::EditStudent(_)) && 
+               modal.active_field == 3 { // Major field is active
+                
+                if modal.major_dropdown.is_open {
+                    // Check if click is in the dropdown list area
+                    if let Some(selected_item) = modal::is_dropdown_item_clicked(position, &modal.major_dropdown, modal) {
+                        // Update the major field with the selected item
+                        modal.inputs[3].1 = selected_item;
+                        modal.major_dropdown.is_open = false;
+                        return Ok(());
+                    } else {
+                        // If click is outside dropdown area and not on a button, close the dropdown
+                        modal.major_dropdown.is_open = false;
+                        return Ok(());
+                    }
+                } else {
+                    // If dropdown is closed and clicking on the Major field, open it
+                    // First check if click is on the Major field itself
+                    let area = centered_rect(60, 60, terminal_size());
+                    let inner_area = area.inner(Margin::new(1, 1));
+                    let chunks = Layout::default()
+                        .direction(Direction::Vertical)
+                        .margin(1)
+                        .constraints([
+                            Constraint::Length(2), // First Name
+                            Constraint::Length(2), // Last Name
+                            Constraint::Length(2), // Age
+                            Constraint::Length(2), // Major
+                            Constraint::Length(2), // GPA
+                            Constraint::Length(1), // Separator
+                            Constraint::Length(3), // Buttons
+                        ])
+                        .split(inner_area);
+                    
+                    // If click is on the major field, open dropdown
+                    if modal::is_position_in_rect(position, chunks[3]) {
+                        modal.major_dropdown.is_open = true;
+                        return Ok(());
+                    }
+                }
             }
         }
 
-        // Get the UI element at the position
+        // Get the UI element at the position for normal mode
         let element = get_element_at_position(
             position,
             self.state.active_tab,
